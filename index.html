@@ -165,7 +165,7 @@
 
             if(playerScore > 21) {
                 endGame('You bust! Dealer wins!');
-                chips -= currentBet;
+                chips = Math.max(0, chips - currentBet); // Ensure chips don't go negative
             } else if(dealerScore > 21) {
                 endGame('Dealer busts! You win!');
                 chips += currentBet;
@@ -174,12 +174,13 @@
                 chips += currentBet;
             } else if(dealerScore > playerScore) {
                 endGame('Dealer wins!');
-                chips -= currentBet;
+                chips = Math.max(0, chips - currentBet); // Ensure chips don't go negative
             } else {
                 endGame("It's a push!");
             }
 
             document.getElementById('chip-count').textContent = chips;
+            updateBetButtonState(); // Disable "Place Bet" if chips are insufficient
         }
 
         function endGame(message) {
@@ -188,7 +189,7 @@
             document.getElementById('hit-button').disabled = true;
             document.getElementById('stand-button').disabled = true;
             document.getElementById('new-game-button').disabled = false;
-            document.getElementById('place-bet').disabled = false;
+            document.getElementById('place-bet').disabled = chips < 10; // Disable if chips < $10
         }
 
         function dealInitialCards() {
@@ -203,6 +204,11 @@
                 endGame('Blackjack! You win!');
                 chips += currentBet * 1.5;
             }
+        }
+
+        function updateBetButtonState() {
+            const placeBetButton = document.getElementById('place-bet');
+            placeBetButton.disabled = chips < 10; // Disable if chips < $10
         }
 
         // Event Listeners
@@ -234,7 +240,7 @@
             document.getElementById('hit-button').disabled = false;
             document.getElementById('stand-button').disabled = false;
             document.getElementById('new-game-button').disabled = true;
-            document.getElementById('place-bet').disabled = false;
+            document.getElementById('place-bet').disabled = chips < 10; // Disable if chips < $10
             dealInitialCards();
         });
 
@@ -261,6 +267,7 @@
         document.getElementById('hit-button').disabled = true;
         document.getElementById('stand-button').disabled = true;
         document.getElementById('new-game-button').disabled = true;
+        updateBetButtonState(); // Disable "Place Bet" if chips < $10
     </script>
 </body>
 </html>
