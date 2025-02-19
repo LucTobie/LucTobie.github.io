@@ -1,10 +1,266 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>My GitHub Website</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #2b580c;
+            color: white;
+            text-align: center;
+        }
+
+        #game-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .hand {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background-color: white;
+            color: black;
+            width: 80px;
+            height: 120px;
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        #message {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+
+        .score {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to My Site! 🚀</h1>
-    <p>This is hosted for free on GitHub Pages.</p>
+    <div id="game-container">
+        <h1>Blackjack</h1>
+        <div id="dealer-hand" class="hand"></div>
+        <div id="dealer-score" class="score">Dealer's Score: 0</div>
+        <hr>
+        <div id="player-hand" class="hand"></div>
+        <div id="player-score" class="score">Your Score: 0</div>
+        <div id="message"></div>
+        <button id="hit-button">Hit</button>
+        <button id="stand-button">Stand</button>
+        <button id="new-game-button">New Game</button>
+        <div id="chips">
+            <h3>Chips: $<span id="chip-count">1000</span></h3>
+            <input type="number" id="bet-amount" min="10" value="10">
+            <button id="place-bet">Place Bet</button>
+        </div>
+    </div>
+
+    <script>
+        let deck = [];
+        let playerHand = [];
+        let dealerHand = [];
+        let gameOver = false;
+        let chips = 1000;
+        let currentBet = 0;
+
+        function createDeck() {
+            const suits = ['♠', '♣', '♥', '♦'];
+            const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+            deck = [];
+            
+            for(let suit of suits) {
+                for(let value of values) {
+                    deck.push({ suit: suit, value: value });
+                }
+            }
+            shuffleDeck();
+        }
+
+        function shuffleDeck() {
+            for(let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        function calculateHandValue(hand) {
+            let value = 0;
+            let aces = 0;
+
+            for(let card of hand) {
+                if(card.value === 'A') {
+                    aces += 1;
+                    value += 11;
+                } else if(['J', 'Q', 'K'].includes(card.value)) {
+                    value += 10;
+                } else {
+                    value += parseInt(card.value);
+                }
+            }
+
+            while(value > 21 && aces > 0) {
+                value -= 10;
+                aces -= 1;
+            }
+
+            return value;
+        }
+
+        function displayHand(hand, elementId) {
+            const handElement = document.getElementById(elementId);
+            handElement.innerHTML = '';
+            
+            for(let card of hand) {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.textContent = `${card.value}${card.suit}`;
+                handElement.appendChild(cardElement);
+            }
+        }
+
+        function updateScores() {
+            document.getElementById('player-score').textContent = 
+                `Your Score: ${calculateHandValue(playerHand)}`;
+            document.getElementById('dealer-score').textContent = 
+                `Dealer's Score: ${calculateHandValue(dealerHand)}`;
+        }
+
+        function checkWinner() {
+            const playerScore = calculateHandValue(playerHand);
+            const dealerScore = calculateHandValue(dealerHand);
+
+            if(playerScore > 21) {
+                endGame('You bust! Dealer wins!');
+                chips -= currentBet;
+            } else if(dealerScore > 21) {
+                endGame('Dealer busts! You win!');
+                chips += currentBet;
+            } else if(playerScore > dealerScore) {
+                endGame('You win!');
+                chips += currentBet;
+            } else if(dealerScore > playerScore) {
+                endGame('Dealer wins!');
+                chips -= currentBet;
+            } else {
+                endGame("It's a push!");
+            }
+
+            document.getElementById('chip-count').textContent = chips;
+        }
+
+        function endGame(message) {
+            gameOver = true;
+            document.getElementById('message').textContent = message;
+            document.getElementById('hit-button').disabled = true;
+            document.getElementById('stand-button').disabled = true;
+            document.getElementById('new-game-button').disabled = false;
+            document.getElementById('place-bet').disabled = false;
+        }
+
+        function dealInitialCards() {
+            playerHand = [deck.pop(), deck.pop()];
+            dealerHand = [deck.pop(), deck.pop()];
+            
+            displayHand(playerHand, 'player-hand');
+            displayHand(dealerHand, 'dealer-hand');
+            updateScores();
+
+            if(calculateHandValue(playerHand) === 21) {
+                endGame('Blackjack! You win!');
+                chips += currentBet * 1.5;
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('hit-button').addEventListener('click', () => {
+            playerHand.push(deck.pop());
+            displayHand(playerHand, 'player-hand');
+            updateScores();
+
+            if(calculateHandValue(playerHand) > 21) {
+                checkWinner();
+            }
+        });
+
+        document.getElementById('stand-button').addEventListener('click', () => {
+            while(calculateHandValue(dealerHand) < 17) {
+                dealerHand.push(deck.pop());
+            }
+            displayHand(dealerHand, 'dealer-hand');
+            updateScores();
+            checkWinner();
+        });
+
+        document.getElementById('new-game-button').addEventListener('click', () => {
+            if(deck.length < 15) {
+                createDeck();
+            }
+            gameOver = false;
+            document.getElementById('message').textContent = '';
+            document.getElementById('hit-button').disabled = false;
+            document.getElementById('stand-button').disabled = false;
+            document.getElementById('new-game-button').disabled = true;
+            document.getElementById('place-bet').disabled = false;
+            dealInitialCards();
+        });
+
+        document.getElementById('place-bet').addEventListener('click', () => {
+            const betAmount = parseInt(document.getElementById('bet-amount').value);
+            if (betAmount < 10) {
+                alert('Minimum bet is $10!');
+                return;
+            }
+            if (betAmount > chips) {
+                alert('You do not have enough chips to place this bet!');
+                return;
+            }
+            currentBet = betAmount;
+            document.getElementById('hit-button').disabled = false;
+            document.getElementById('stand-button').disabled = false;
+            document.getElementById('new-game-button').disabled = true;
+            document.getElementById('place-bet').disabled = true;
+            createDeck();
+            dealInitialCards();
+        });
+
+        // Initialize game
+        document.getElementById('hit-button').disabled = true;
+        document.getElementById('stand-button').disabled = true;
+        document.getElementById('new-game-button').disabled = true;
+    </script>
 </body>
-</html
+</html>
